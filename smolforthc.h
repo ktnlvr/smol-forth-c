@@ -11,6 +11,9 @@ typedef uint16_t smolforth_status_ret;
 #define SMOLFORTH_STATUS_STACK_UNDERFLOW ((smolforth_status_ret)0x0010)
 #define SMOLFORTH_STATUS_TYPE_ERROR ((smolforth_status_ret)0x0020)
 
+#define SMOLFORTH_MAX_WORD_LENGTH 16
+#define SMOLFORTH_MAX_WORD_COUNT_IN_LIST 32
+
 typedef enum smolforth_tok_kind {
   SMOLFORTH_TOK_INTEGER,
   SMOLFORTH_TOK_WORD,
@@ -186,18 +189,18 @@ smolforth_status_ret smolforth__word_mul(smolforth_tok *in, size_t in_len,
 #pragma endregion
 
 typedef struct _smolforth_kv_str_func_ptr_pair {
-  char k[16];
+  char k[SMOLFORTH_MAX_WORD_LENGTH];
   smolforth_word_func_ptr v;
 } _smolforth_kv_str_func_ptr_pair;
 
 typedef struct smolforth_word_list {
-  _smolforth_kv_str_func_ptr_pair pairs[32];
+  _smolforth_kv_str_func_ptr_pair pairs[SMOLFORTH_MAX_WORD_COUNT_IN_LIST];
   size_t len;
 } smolforth_word_list;
 
 void smolforth_word_list_append(smolforth_word_list *self, const char *name,
                                 smolforth_word_func_ptr func) {
-  memset(&self->pairs[self->len], 0, sizeof(char) * 16);
+  memset(&self->pairs[self->len], 0, sizeof(char) * SMOLFORTH_MAX_WORD_LENGTH);
   size_t i = 0;
   for (i = 0; name[i]; i++)
     self->pairs[self->len].k[i] = name[i];
