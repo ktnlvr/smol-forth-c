@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "smolforthc.h"
 
 int main(void) {
@@ -12,7 +14,24 @@ int main(void) {
   smolforth_unit_stack stack =
       smolforth_unit_stack_new(malloc(sizeof(smolforth_unit) * 16), 0);
 
-  smolforth_do(&toks[0], sizeof toks / sizeof toks[0], &words, &stack);
+  size_t i = 0;
+  size_t len = sizeof toks / sizeof toks[0];
+  for (i = 0; i < 3; i++) {
+    smolforth_do_step(&toks[i], len - i, &words, &stack);
+    printf("|");
+    size_t j = 0;
+    for (j = 0; j < stack.len; j++) {
+      switch (stack.units[j].kind) {
+      case SMOLFORTH_UNIT_DOUBLE:
+        printf(" %e", stack.units[j].as_double);
+        break;
+      case SMOLFORTH_UNIT_INTEGER:
+        printf(" %d", stack.units[j].as_integer);
+        break;
+      }
+    }
+    printf("\n");
+  }
 
   return 0;
 }
