@@ -1,6 +1,13 @@
 #ifndef __KITTENLOVER__SMOLFORTH_C__
 #define __KITTENLOVER__SMOLFORTH_C__
 
+/*
+
+extensions:
+SMOLFORTH_USE_EXT_DEFAULT_BUILTINS_LIST - default functions like drop, swap, dup
+
+*/
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -98,6 +105,7 @@ typedef smolforth_status_ret (*smolforth_word_func_ptr)(smolforth_tok *, size_t,
                                                         smolforth_unit_stack *);
 
 #pragma region CORE FUNCTIONS
+#ifdef SMOLFORTH_USE_EXT_DEFAULT_BUILTINS_LIST
 
 smolforth_status_ret smolforth__word_dup(smolforth_tok *in, size_t in_len,
                                          smolforth_unit_stack *stack) {
@@ -186,6 +194,7 @@ smolforth_status_ret smolforth__word_mul(smolforth_tok *in, size_t in_len,
   return SMOLFORTH_STATUS_OK;
 }
 
+#endif
 #pragma endregion
 
 typedef struct _smolforth_kv_str_func_ptr_pair {
@@ -216,6 +225,8 @@ smolforth_word_list smolforth_word_list_new(smolforth_word_list *parent) {
   return ret;
 }
 
+#ifdef SMOLFORTH_USE_EXT_DEFAULT_BUILTINS_LIST
+
 smolforth_word_list smolforth_word_list_default() {
   smolforth_word_list ret = smolforth_word_list_new(NULL);
   smolforth_word_list_append(&ret, "dup", smolforth__word_dup);
@@ -226,6 +237,8 @@ smolforth_word_list smolforth_word_list_default() {
   smolforth_word_list_append(&ret, "drop", smolforth__word_drop);
   return ret;
 }
+
+#endif
 
 smolforth_word_func_ptr smolforth_word_list_lookup(smolforth_word_list *self,
                                                    const char *name) {

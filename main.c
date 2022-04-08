@@ -1,5 +1,6 @@
 #include <stdio.h>
 
+#define SMOLFORTH_USE_EXT_DEFAULT_BUILTINS_LIST
 #include "smolforthc.h"
 
 int main(void) {
