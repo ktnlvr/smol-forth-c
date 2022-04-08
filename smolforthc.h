@@ -9,6 +9,7 @@ typedef uint16_t smolforth_status_ret;
 
 #define SMOLFORTH_STATUS_OK ((smolforth_status_ret)0x0000)
 #define SMOLFORTH_STATUS_STACK_UNDERFLOW ((smolforth_status_ret)0x0010)
+#define SMOLFORTH_STATUS_TYPE_ERROR ((smolforth_status_ret)0x0020)
 
 typedef enum smolforth_tok_kind {
   SMOLFORTH_TOK_INTEGER,
@@ -121,6 +122,36 @@ smolforth_status_ret smolforth__word_noop(smolforth_tok *in, size_t in_len,
   return SMOLFORTH_STATUS_OK;
 }
 
+smolforth_status_ret smolforth__word_drop(smolforth_tok *in, size_t in_len,
+                                          smolforth_unit_stack *stack) {
+  smolforth_unit_stack_require_throw(stack, 1);
+  smolforth_unit_stack_pop(stack);
+  return SMOLFORTH_STATUS_OK;
+}
+
+smolforth_status_ret smolforth__word_abs(smolforth_tok *in, size_t in_len,
+                                         smolforth_unit_stack *stack) {
+  smolforth_unit_stack_require_throw(stack, 1);
+  smolforth_unit u = smolforth_unit_stack_pop(stack);
+
+  switch (u.kind) {
+  case SMOLFORTH_UNIT_DOUBLE:
+    if (u.as_double < 0)
+      u.as_double = -u.as_double;
+    break;
+  case SMOLFORTH_UNIT_INTEGER:
+    if (u.as_integer < 0)
+      u.as_integer = -u.as_integer;
+    break;
+  default:
+    return SMOLFORTH_STATUS_TYPE_ERROR;
+  }
+
+  smolforth_unit_stack_push(stack, u);
+
+  return SMOLFORTH_STATUS_OK;
+}
+
 smolforth_status_ret smolforth__word_mul(smolforth_tok *in, size_t in_len,
                                          smolforth_unit_stack *stack) {
   smolforth_unit_stack_require_throw(stack, 2);
@@ -181,6 +212,8 @@ smolforth_word_list smolforth_word_list_default() {
   smolforth_word_list_append(&ret, "*", smolforth__word_mul);
   smolforth_word_list_append(&ret, "swap", smolforth__word_swap);
   smolforth_word_list_append(&ret, "noop", smolforth__word_noop);
+  smolforth_word_list_append(&ret, "abs", smolforth__word_abs);
+  smolforth_word_list_append(&ret, "drop", smolforth__word_drop);
   return ret;
 }
 
