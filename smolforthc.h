@@ -89,6 +89,34 @@ void smolforth__word_dup(smolforth_tok *in, size_t in_len,
   smolforth_unit_stack_push(stack, u);
 }
 
+void smolforth__word_mul(smolforth_tok *in, size_t in_len,
+                         smolforth_unit_stack *stack) {
+  smolforth_unit a = smolforth_unit_stack_pop(stack);
+  smolforth_unit b = smolforth_unit_stack_pop(stack);
+  smolforth_unit c;
+
+  if (a.kind == SMOLFORTH_UNIT_INTEGER && b.kind == SMOLFORTH_UNIT_DOUBLE) {
+    c.kind = SMOLFORTH_UNIT_DOUBLE;
+    c.as_double = (double)a.as_integer * b.as_double;
+  } else if (a.kind == SMOLFORTH_UNIT_DOUBLE &&
+             b.kind == SMOLFORTH_UNIT_DOUBLE) {
+    c.kind = SMOLFORTH_UNIT_DOUBLE;
+    c.as_double = a.as_double * b.as_double;
+  } else if (a.kind == SMOLFORTH_UNIT_INTEGER &&
+             b.kind == SMOLFORTH_UNIT_INTEGER) {
+    c.kind = SMOLFORTH_UNIT_INTEGER;
+    c.as_integer = a.as_integer * b.as_integer;
+  } else if (a.kind == SMOLFORTH_UNIT_DOUBLE &&
+             b.kind == SMOLFORTH_UNIT_INTEGER) {
+    c.kind = SMOLFORTH_UNIT_DOUBLE;
+    c.as_double = a.as_double * (double)b.as_integer;
+  } else {
+    abort();
+  }
+
+  smolforth_unit_stack_push(stack, c);
+}
+
 #pragma endregion
 
 typedef struct _smolforth_kv_str_func_ptr_pair {
@@ -115,6 +143,7 @@ smolforth_word_list smolforth_word_list_default() {
   smolforth_word_list ret;
   ret.len = 0;
   smolforth_word_list_append(&ret, "dup", smolforth__word_dup);
+  smolforth_word_list_append(&ret, "*", smolforth__word_mul);
   return ret;
 }
 

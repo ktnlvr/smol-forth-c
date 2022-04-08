@@ -16,7 +16,7 @@ int main(void) {
 
   size_t i = 0;
   size_t len = sizeof toks / sizeof toks[0];
-  for (i = 0; i < 3; i++) {
+  for (i = 0; i < len; i++) {
     smolforth_do_step(&toks[i], len - i, &words, &stack);
     printf("|");
     size_t j = 0;
