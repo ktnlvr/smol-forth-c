@@ -56,7 +56,7 @@ typedef struct smolforth_unit {
 typedef void (*smolforth_word_func_ptr)(smolforth_tok *, size_t,
                                         smolforth_unit *, size_t, size_t *);
 
-void _smolforth_word_func_dup(smolforth_tok *in, size_t in_len,
+void smolforth__word_dup(smolforth_tok *in, size_t in_len,
                               smolforth_unit *stack, size_t stack_limit,
                               size_t *stack_size_ptr) {
   smolforth_unit a = stack[*stack_size_ptr - 1];
@@ -87,7 +87,7 @@ void smolforth_word_list_append(smolforth_word_list *self, const char *name,
 smolforth_word_list smolforth_word_list_default() {
   smolforth_word_list ret;
   ret.len = 0;
-  smolforth_word_list_append(&ret, "dup", _smolforth_word_func_dup);
+  smolforth_word_list_append(&ret, "dup", smolforth__word_dup);
   return ret;
 }
 
