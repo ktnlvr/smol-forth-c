@@ -17,7 +17,14 @@ int main(void) {
   size_t i = 0;
   size_t len = sizeof toks / sizeof toks[0];
   for (i = 0; i < len; i++) {
-    smolforth_do_step(&toks[i], len - i, &words, &stack);
+    smolforth_status_ret status =
+        smolforth_do_step(&toks[i], len - i, &words, &stack);
+
+    if (status != SMOLFORTH_STATUS_OK) {
+      printf("exited with status %d.\n", status);
+      return 1;
+    }
+
     printf("|");
     size_t j = 0;
     for (j = 0; j < stack.len; j++) {

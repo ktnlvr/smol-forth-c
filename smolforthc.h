@@ -1,8 +1,14 @@
 #ifndef __KITTENLOVER__SMOLFORTH_C__
 #define __KITTENLOVER__SMOLFORTH_C__
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
+typedef uint16_t smolforth_status_ret;
+
+#define SMOLFORTH_STATUS_OK ((smolforth_status_ret)0x0000)
+#define SMOLFORTH_STATUS_STACK_UNDERFLOW ((smolforth_status_ret)0x0010)
 
 typedef enum smolforth_tok_kind {
   SMOLFORTH_TOK_INTEGER,
@@ -72,25 +78,36 @@ smolforth_unit smolforth_unit_stack_pop(smolforth_unit_stack *stack) {
   return stack->units[stack->len-- - 1];
 }
 
+#define smolforth_unit_stack_require_throw(stack, n)                           \
+  {                                                                            \
+    if (stack->len < (n)) {                                                    \
+      return SMOLFORTH_STATUS_STACK_UNDERFLOW;                                 \
+    }                                                                          \
+  }
+
 void smolforth_unit_stack_push(smolforth_unit_stack *stack,
                                smolforth_unit unit) {
   stack->units[stack->len++] = unit;
 }
 
-typedef void (*smolforth_word_func_ptr)(smolforth_tok *, size_t,
-                                        smolforth_unit_stack *);
+typedef smolforth_status_ret (*smolforth_word_func_ptr)(smolforth_tok *, size_t,
+                                                        smolforth_unit_stack *);
 
 #pragma region CORE FUNCTIONS
 
-void smolforth__word_dup(smolforth_tok *in, size_t in_len,
-                         smolforth_unit_stack *stack) {
+smolforth_status_ret smolforth__word_dup(smolforth_tok *in, size_t in_len,
+                                         smolforth_unit_stack *stack) {
+  smolforth_unit_stack_require_throw(stack, 1);
   smolforth_unit u = smolforth_unit_stack_pop(stack);
   smolforth_unit_stack_push(stack, u);
   smolforth_unit_stack_push(stack, u);
+
+  return SMOLFORTH_STATUS_OK;
 }
 
-void smolforth__word_mul(smolforth_tok *in, size_t in_len,
-                         smolforth_unit_stack *stack) {
+smolforth_status_ret smolforth__word_mul(smolforth_tok *in, size_t in_len,
+                                         smolforth_unit_stack *stack) {
+  smolforth_unit_stack_require_throw(stack, 2);
   smolforth_unit a = smolforth_unit_stack_pop(stack);
   smolforth_unit b = smolforth_unit_stack_pop(stack);
   smolforth_unit c;
@@ -115,6 +132,8 @@ void smolforth__word_mul(smolforth_tok *in, size_t in_len,
   }
 
   smolforth_unit_stack_push(stack, c);
+
+  return SMOLFORTH_STATUS_OK;
 }
 
 #pragma endregion
@@ -157,9 +176,9 @@ smolforth_word_func_ptr smolforth_word_list_lookup(smolforth_word_list *self,
   return NULL;
 }
 
-void smolforth_do_step(smolforth_tok *in, size_t in_len,
-                       smolforth_word_list *words,
-                       smolforth_unit_stack *stack) {
+smolforth_status_ret smolforth_do_step(smolforth_tok *in, size_t in_len,
+                                       smolforth_word_list *words,
+                                       smolforth_unit_stack *stack) {
   smolforth_tok_kind kind = in[0].kind;
   switch (kind) {
   case SMOLFORTH_TOK_INTEGER:
@@ -179,16 +198,25 @@ void smolforth_do_step(smolforth_tok *in, size_t in_len,
     if (func == NULL)
       abort();
 
-    func(in, in_len, stack);
+    smolforth_status_ret ret = func(in, in_len, stack);
+    return ret;
   } break;
   }
+
+  return SMOLFORTH_STATUS_OK;
 }
 
-void smolforth_do(smolforth_tok *in, size_t in_len, smolforth_word_list *words,
-                  smolforth_unit_stack *stack) {
+smolforth_status_ret smolforth_do(smolforth_tok *in, size_t in_len,
+                                  smolforth_word_list *words,
+                                  smolforth_unit_stack *stack) {
   size_t i = 0;
-  for (i = 0; i < in_len; i++)
-    smolforth_do_step(in, in_len - i, words, stack);
+  for (i = 0; i < in_len; i++) {
+    smolforth_status_ret ret = smolforth_do_step(in, in_len - i, words, stack);
+    if (ret != SMOLFORTH_STATUS_OK)
+      return ret;
+  }
+
+  return SMOLFORTH_STATUS_OK;
 }
 
 #endif
