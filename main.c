@@ -13,16 +13,12 @@ int main(void) {
   };
 
   smolforth_word_list builtins = smolforth_word_list_default();
-  smolforth_word_list words = smolforth_word_list_new(&builtins);
-
-  smolforth_unit_stack stack =
-      smolforth_unit_stack_new(malloc(sizeof(smolforth_unit) * 16), 0);
+  smolforth_ctx ctx = smolforth_ctx_new(&toks[0], 10, &builtins);
 
   size_t i = 0;
   size_t len = sizeof toks / sizeof toks[0];
   for (i = 0; i < len; i++) {
-    smolforth_status_ret status =
-        smolforth_do_step(&toks[i], len - i, &words, &stack);
+    smolforth_status_ret status = smolforth_do_step(&ctx, i);
 
     if (status != SMOLFORTH_STATUS_OK) {
       printf("exited with status %d.\n", status);
@@ -31,13 +27,13 @@ int main(void) {
 
     printf("|");
     size_t j = 0;
-    for (j = 0; j < stack.len; j++) {
-      switch (stack.units[j].kind) {
+    for (j = 0; j < ctx.stack.len; j++) {
+      switch (ctx.stack.units[j].kind) {
       case SMOLFORTH_UNIT_DOUBLE:
-        printf(" %e", stack.units[j].as_double);
+        printf(" %e", ctx.stack.units[j].as_double);
         break;
       case SMOLFORTH_UNIT_INTEGER:
-        printf(" %d", stack.units[j].as_integer);
+        printf(" %d", ctx.stack.units[j].as_integer);
         break;
       }
     }

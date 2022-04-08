@@ -104,6 +104,8 @@ void smolforth_unit_stack_push(smolforth_unit_stack *stack,
 typedef smolforth_status_ret (*smolforth_word_func_ptr)(smolforth_tok *, size_t,
                                                         smolforth_unit_stack *);
 
+typedef struct smolforth_ctx;
+
 #pragma region CORE FUNCTIONS
 #ifdef SMOLFORTH_USE_EXT_DEFAULT_BUILTINS_LIST
 
@@ -227,6 +229,23 @@ smolforth_word_list smolforth_word_list_new(smolforth_word_list *parent) {
 
 #ifdef SMOLFORTH_USE_EXT_DEFAULT_BUILTINS_LIST
 
+typedef struct smolforth_ctx {
+  smolforth_tok *tokens;
+  size_t tokens_length;
+  smolforth_unit_stack stack;
+  smolforth_word_list wordbank;
+} smolforth_ctx;
+
+smolforth_ctx smolforth_ctx_new(smolforth_tok *toks, size_t toks_len,
+                                smolforth_word_list *parent) {
+  smolforth_ctx ctx;
+  ctx.stack = smolforth_unit_stack_new(malloc(sizeof(smolforth_unit) * 16), 0);
+  ctx.tokens = toks;
+  ctx.tokens_length = toks_len;
+  ctx.wordbank = smolforth_word_list_new(parent);
+  return ctx;
+}
+
 smolforth_word_list smolforth_word_list_default() {
   smolforth_word_list ret = smolforth_word_list_new(NULL);
   smolforth_word_list_append(&ret, "dup", smolforth__word_dup);
@@ -253,29 +272,29 @@ smolforth_word_func_ptr smolforth_word_list_lookup(smolforth_word_list *self,
   return NULL;
 }
 
-smolforth_status_ret smolforth_do_step(smolforth_tok *in, size_t in_len,
-                                       smolforth_word_list *words,
-                                       smolforth_unit_stack *stack) {
-  smolforth_tok_kind kind = in[0].kind;
+smolforth_status_ret smolforth_do_step(smolforth_ctx *ctx, size_t offset) {
+  smolforth_tok_kind kind = ctx->tokens[offset].kind;
   switch (kind) {
   case SMOLFORTH_TOK_INTEGER:
-    stack->units[stack->len].kind = SMOLFORTH_UNIT_INTEGER;
-    stack->units[stack->len].as_integer = in[0].as_integer;
-    stack->len++;
+    ctx->stack.units[ctx->stack.len].kind = SMOLFORTH_UNIT_INTEGER;
+    ctx->stack.units[ctx->stack.len].as_integer =
+        ctx->tokens[offset].as_integer;
+    ctx->stack.len++;
     break;
   case SMOLFORTH_TOK_DOUBLE:
-    stack->units[stack->len].kind = SMOLFORTH_UNIT_DOUBLE;
-    stack->units[stack->len].as_double = in[0].as_double;
-    stack->len++;
+    ctx->stack.units[ctx->stack.len].kind = SMOLFORTH_UNIT_DOUBLE;
+    ctx->stack.units[ctx->stack.len].as_double = ctx->tokens[offset].as_double;
+    ctx->stack.len++;
     break;
   case SMOLFORTH_TOK_WORD: {
     smolforth_word_func_ptr func =
-        smolforth_word_list_lookup(words, in[0].as_word);
+        smolforth_word_list_lookup(&ctx->wordbank, ctx->tokens[offset].as_word);
 
     if (func == NULL)
       abort();
 
-    smolforth_status_ret ret = func(in, in_len, stack);
+    smolforth_status_ret ret =
+        func(ctx->tokens + offset, ctx->tokens_length - offset, &ctx->stack);
     return ret;
   } break;
   }
@@ -283,12 +302,10 @@ smolforth_status_ret smolforth_do_step(smolforth_tok *in, size_t in_len,
   return SMOLFORTH_STATUS_OK;
 }
 
-smolforth_status_ret smolforth_do(smolforth_tok *in, size_t in_len,
-                                  smolforth_word_list *words,
-                                  smolforth_unit_stack *stack) {
+smolforth_status_ret smolforth_do(smolforth_ctx *ctx) {
   size_t i = 0;
-  for (i = 0; i < in_len; i++) {
-    smolforth_status_ret ret = smolforth_do_step(in, in_len - i, words, stack);
+  for (i = 0; i < ctx->tokens_length; i++) {
+    smolforth_status_ret ret = smolforth_do_step(ctx, i);
     if (ret != SMOLFORTH_STATUS_OK)
       return ret;
   }
