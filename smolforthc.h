@@ -194,6 +194,7 @@ typedef struct _smolforth_kv_str_func_ptr_pair {
 } _smolforth_kv_str_func_ptr_pair;
 
 typedef struct smolforth_word_list {
+  struct smolforth_word_list *parent;
   _smolforth_kv_str_func_ptr_pair pairs[SMOLFORTH_MAX_WORD_COUNT_IN_LIST];
   size_t len;
 } smolforth_word_list;
@@ -208,9 +209,15 @@ void smolforth_word_list_append(smolforth_word_list *self, const char *name,
   self->pairs[self->len++].v = func;
 }
 
-smolforth_word_list smolforth_word_list_default() {
+smolforth_word_list smolforth_word_list_new(smolforth_word_list *parent) {
   smolforth_word_list ret;
   ret.len = 0;
+  ret.parent = parent;
+  return ret;
+}
+
+smolforth_word_list smolforth_word_list_default() {
+  smolforth_word_list ret = smolforth_word_list_new(NULL);
   smolforth_word_list_append(&ret, "dup", smolforth__word_dup);
   smolforth_word_list_append(&ret, "*", smolforth__word_mul);
   smolforth_word_list_append(&ret, "swap", smolforth__word_swap);
@@ -226,6 +233,9 @@ smolforth_word_func_ptr smolforth_word_list_lookup(smolforth_word_list *self,
   for (i = 0; i < self->len; i++)
     if (strcmp(name, self->pairs[i].k) == 0)
       return self->pairs[i].v;
+
+  if (self->parent)
+    return smolforth_word_list_lookup(self->parent, name);
 
   return NULL;
 }

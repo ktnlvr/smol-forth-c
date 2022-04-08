@@ -11,7 +11,8 @@ int main(void) {
       smolforth_new_tok_word("swap"), smolforth_new_tok_word("drop"),
   };
 
-  smolforth_word_list words = smolforth_word_list_default();
+  smolforth_word_list builtins = smolforth_word_list_default();
+  smolforth_word_list words = smolforth_word_list_new(&builtins);
 
   smolforth_unit_stack stack =
       smolforth_unit_stack_new(malloc(sizeof(smolforth_unit) * 16), 0);
