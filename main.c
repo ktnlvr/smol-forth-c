@@ -3,10 +3,11 @@
 #include "smolforthc.h"
 
 int main(void) {
-  smolforth_tok toks[5] = {
+  smolforth_tok toks[8] = {
       smolforth_new_tok_double(3.14), smolforth_new_tok_integer(2),
-      smolforth_new_tok_word("dup"),  smolforth_new_tok_word("*"),
-      smolforth_new_tok_word("*"),
+      smolforth_new_tok_word("swap"), smolforth_new_tok_word("swap"),
+      smolforth_new_tok_word("noop"), smolforth_new_tok_word("dup"),
+      smolforth_new_tok_word("*"),    smolforth_new_tok_word("*"),
   };
 
   smolforth_word_list words = smolforth_word_list_default();

@@ -105,6 +105,22 @@ smolforth_status_ret smolforth__word_dup(smolforth_tok *in, size_t in_len,
   return SMOLFORTH_STATUS_OK;
 }
 
+smolforth_status_ret smolforth__word_swap(smolforth_tok *in, size_t in_len,
+                                          smolforth_unit_stack *stack) {
+  smolforth_unit_stack_require_throw(stack, 1);
+  smolforth_unit a = smolforth_unit_stack_pop(stack);
+  smolforth_unit b = smolforth_unit_stack_pop(stack);
+  smolforth_unit_stack_push(stack, a);
+  smolforth_unit_stack_push(stack, b);
+
+  return SMOLFORTH_STATUS_OK;
+}
+
+smolforth_status_ret smolforth__word_noop(smolforth_tok *in, size_t in_len,
+                                          smolforth_unit_stack *stack) {
+  return SMOLFORTH_STATUS_OK;
+}
+
 smolforth_status_ret smolforth__word_mul(smolforth_tok *in, size_t in_len,
                                          smolforth_unit_stack *stack) {
   smolforth_unit_stack_require_throw(stack, 2);
@@ -163,6 +179,8 @@ smolforth_word_list smolforth_word_list_default() {
   ret.len = 0;
   smolforth_word_list_append(&ret, "dup", smolforth__word_dup);
   smolforth_word_list_append(&ret, "*", smolforth__word_mul);
+  smolforth_word_list_append(&ret, "swap", smolforth__word_swap);
+  smolforth_word_list_append(&ret, "noop", smolforth__word_noop);
   return ret;
 }
 
