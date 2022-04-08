@@ -2,6 +2,7 @@
 #define __KITTENLOVER__SMOLFORTH_C__
 
 #include <stdlib.h>
+#include <string.h>
 
 typedef enum smolforth_tok_kind {
   SMOLFORTH_TOK_INTEGER,
@@ -52,8 +53,57 @@ typedef struct smolforth_unit {
   };
 } smolforth_unit;
 
-void smolforth_do(smolforth_tok *in, size_t in_len, smolforth_unit *stack,
-                  size_t stack_limit, size_t *stack_size_ptr) {
+typedef void (*smolforth_word_func_ptr)(smolforth_tok *, size_t,
+                                        smolforth_unit *, size_t, size_t *);
+
+void _smolforth_word_func_dup(smolforth_tok *in, size_t in_len,
+                              smolforth_unit *stack, size_t stack_limit,
+                              size_t *stack_size_ptr) {
+  smolforth_unit a = stack[*stack_size_ptr - 1];
+  stack[*stack_size_ptr] = a;
+  ++*stack_size_ptr;
+}
+
+typedef struct _smolforth_kv_str_func_ptr_pair {
+  char k[16];
+  smolforth_word_func_ptr v;
+} _smolforth_kv_str_func_ptr_pair;
+
+typedef struct smolforth_word_list {
+  _smolforth_kv_str_func_ptr_pair pairs[32];
+  size_t len;
+} smolforth_word_list;
+
+void smolforth_word_list_append(smolforth_word_list *self, const char *name,
+                                smolforth_word_func_ptr func) {
+  memset(&self->pairs[self->len], 0, sizeof(char) * 16);
+  size_t i = 0;
+  for (i = 0; name[i]; i++)
+    self->pairs[self->len].k[i] = name[i];
+
+  self->pairs[self->len++].v = func;
+}
+
+smolforth_word_list smolforth_word_list_default() {
+  smolforth_word_list ret;
+  ret.len = 0;
+  smolforth_word_list_append(&ret, "dup", _smolforth_word_func_dup);
+  return ret;
+}
+
+smolforth_word_func_ptr smolforth_word_list_lookup(smolforth_word_list *self,
+                                                   const char *name) {
+  size_t i = 0;
+  for (i = 0; i < self->len; i++)
+    if (strcmp(name, self->pairs[i].k) == 0)
+      return self->pairs[i].v;
+
+  return NULL;
+}
+
+void smolforth_do(smolforth_tok *in, size_t in_len, smolforth_word_list *words,
+                  smolforth_unit *stack, size_t stack_limit,
+                  size_t *stack_size_ptr) {
   size_t i = 0;
   for (i = 0; i < in_len; i++) {
     smolforth_tok_kind kind = in[i].kind;
@@ -68,6 +118,15 @@ void smolforth_do(smolforth_tok *in, size_t in_len, smolforth_unit *stack,
       stack[i].as_double = in[i].as_double;
       ++*stack_size_ptr;
       break;
+    case SMOLFORTH_TOK_WORD: {
+      smolforth_word_func_ptr func =
+          smolforth_word_list_lookup(words, in[i].as_word);
+
+      if (func == NULL)
+        abort();
+
+      func(in, in_len, stack, stack_limit, stack_size_ptr);
+    } break;
     }
   }
 }
