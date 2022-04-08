@@ -1,0 +1,6 @@
+.vs/
+.out
+.o
+.so
+*sln*
+*vcxproj*
