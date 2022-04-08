@@ -53,16 +53,43 @@ typedef struct smolforth_unit {
   };
 } smolforth_unit;
 
+typedef struct smolforth_unit_stack {
+  smolforth_unit *units;
+  size_t len;
+  size_t maxlen;
+} smolforth_unit_stack;
+
+smolforth_unit_stack smolforth_unit_stack_new(smolforth_unit *units,
+                                              size_t len) {
+  smolforth_unit_stack ret;
+  ret.len = 0;
+  ret.maxlen = len;
+  ret.units = units;
+  return ret;
+}
+
+smolforth_unit smolforth_unit_stack_pop(smolforth_unit_stack *stack) {
+  return stack->units[stack->len-- - 1];
+}
+
+void smolforth_unit_stack_push(smolforth_unit_stack *stack,
+                               smolforth_unit unit) {
+  stack->units[stack->len++] = unit;
+}
+
 typedef void (*smolforth_word_func_ptr)(smolforth_tok *, size_t,
-                                        smolforth_unit *, size_t, size_t *);
+                                        smolforth_unit_stack *);
+
+#pragma region CORE FUNCTIONS
 
 void smolforth__word_dup(smolforth_tok *in, size_t in_len,
-                              smolforth_unit *stack, size_t stack_limit,
-                              size_t *stack_size_ptr) {
-  smolforth_unit a = stack[*stack_size_ptr - 1];
-  stack[*stack_size_ptr] = a;
-  ++*stack_size_ptr;
+                         smolforth_unit_stack *stack) {
+  smolforth_unit u = smolforth_unit_stack_pop(stack);
+  smolforth_unit_stack_push(stack, u);
+  smolforth_unit_stack_push(stack, u);
 }
+
+#pragma endregion
 
 typedef struct _smolforth_kv_str_func_ptr_pair {
   char k[16];
@@ -102,21 +129,20 @@ smolforth_word_func_ptr smolforth_word_list_lookup(smolforth_word_list *self,
 }
 
 void smolforth_do(smolforth_tok *in, size_t in_len, smolforth_word_list *words,
-                  smolforth_unit *stack, size_t stack_limit,
-                  size_t *stack_size_ptr) {
+                  smolforth_unit_stack *stack) {
   size_t i = 0;
   for (i = 0; i < in_len; i++) {
     smolforth_tok_kind kind = in[i].kind;
     switch (kind) {
     case SMOLFORTH_TOK_INTEGER:
-      stack[i].kind = SMOLFORTH_UNIT_INTEGER;
-      stack[i].as_integer = in[i].as_integer;
-      ++*stack_size_ptr;
+      stack->units[i].kind = SMOLFORTH_UNIT_INTEGER;
+      stack->units[i].as_integer = in[i].as_integer;
+      stack->len++;
       break;
     case SMOLFORTH_TOK_DOUBLE:
-      stack[i].kind = SMOLFORTH_UNIT_DOUBLE;
-      stack[i].as_double = in[i].as_double;
-      ++*stack_size_ptr;
+      stack->units[i].kind = SMOLFORTH_UNIT_DOUBLE;
+      stack->units[i].as_double = in[i].as_double;
+      stack->len++;
       break;
     case SMOLFORTH_TOK_WORD: {
       smolforth_word_func_ptr func =
@@ -125,7 +151,7 @@ void smolforth_do(smolforth_tok *in, size_t in_len, smolforth_word_list *words,
       if (func == NULL)
         abort();
 
-      func(in, in_len, stack, stack_limit, stack_size_ptr);
+      func(in, in_len, stack, stack);
     } break;
     }
   }
