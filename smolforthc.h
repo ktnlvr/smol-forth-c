@@ -17,6 +17,7 @@ typedef uint16_t smolforth_status_ret;
 #define SMOLFORTH_STATUS_OK ((smolforth_status_ret)0x0000)
 #define SMOLFORTH_STATUS_STACK_UNDERFLOW ((smolforth_status_ret)0x0010)
 #define SMOLFORTH_STATUS_TYPE_ERROR ((smolforth_status_ret)0x0020)
+#define SMOLFORTH_STATUS_UNDEFINED_NAME ((smolforth_status_ret)0x0040)
 
 #define SMOLFORTH_MAX_WORD_LENGTH 16
 #define SMOLFORTH_MAX_WORD_COUNT_IN_LIST 32
@@ -291,7 +292,7 @@ smolforth_status_ret smolforth_do_step(smolforth_ctx *ctx, size_t offset) {
         smolforth_word_list_lookup(&ctx->wordbank, ctx->tokens[offset].as_word);
 
     if (func == NULL)
-      abort();
+      return SMOLFORTH_STATUS_UNDEFINED_NAME;
 
     smolforth_status_ret ret =
         func(ctx->tokens + offset, ctx->tokens_length - offset, &ctx->stack);
